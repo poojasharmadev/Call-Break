@@ -444,8 +444,8 @@ MonoBehaviour:
   roundResultUI: {fileID: 506140889}
   finalResultUI: {fileID: 1666505901}
   maxRounds: 5
-  aiPlayDelay: 0.8
-  winnerDelay: 0.8
+  aiPlayDelay: 0.3
+  winnerDelay: 0.3
 --- !u!1 &345920354
 GameObject:
   m_ObjectHideFlags: 0
@@ -4458,7 +4458,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1666505900
 RectTransform:
   m_ObjectHideFlags: 0
