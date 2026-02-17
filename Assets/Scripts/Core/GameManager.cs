@@ -17,6 +17,13 @@ namespace Core
 
         public Color normalColor = Color.white;
         public Color activeColor = new Color(1f, 1f, 0.4f); // soft yellow
+        
+        [Header("Deal Animation Pro")]
+        public RectTransform deckPoint;
+        public bool animateDeal = true;
+        public float dealInterval = 0.03f;   // time between cards
+        public float dealStartDelay = 0.2f;  // delay before dealing starts
+
 
         
         [Header("Animation")]
@@ -95,6 +102,51 @@ namespace Core
 
         // =================== ROUND START ===================
 
+        IEnumerator DealAllPlayersAnimated()
+        {
+            yield return new WaitForSeconds(dealStartDelay);
+
+            // Temporary lists so we can reveal gradually
+            List<CardData> p0Temp = new List<CardData>();
+            List<CardData> p1Temp = new List<CardData>();
+            List<CardData> p2Temp = new List<CardData>();
+            List<CardData> p3Temp = new List<CardData>();
+
+            // Deal 13 rounds: P0 -> P1 -> P2 -> P3
+            for (int r = 0; r < 13; r++)
+            {
+                // P0
+                yield return StartCoroutine(AnimateThrow(players[0].hand[r], deckPoint.position, bottomSeat, false));
+
+                p0Temp.Add(players[0].hand[r]);
+                handUI.Render(p0Temp, OnHumanCardClicked, (c) => false);
+                if (SFXManager.I) SFXManager.I.PlayCardThrow();
+                yield return new WaitForSeconds(dealInterval);
+
+                // P1
+                yield return StartCoroutine(AnimateThrow(players[1].hand[r], deckPoint.position, leftSeat, true));
+                p1Temp.Add(players[1].hand[r]);
+                if (SFXManager.I) SFXManager.I.PlayCardThrow();
+                yield return new WaitForSeconds(dealInterval);
+
+                // P2
+                yield return StartCoroutine(AnimateThrow(players[1].hand[r], deckPoint.position, topSeat, true));
+                p2Temp.Add(players[2].hand[r]);
+                if (SFXManager.I) SFXManager.I.PlayCardThrow();
+                yield return new WaitForSeconds(dealInterval);
+
+                // P3
+                yield return StartCoroutine(AnimateThrow(players[1].hand[r], deckPoint.position, rightSeat, true));
+                p3Temp.Add(players[3].hand[r]);
+                if (SFXManager.I) SFXManager.I.PlayCardThrow();
+                yield return new WaitForSeconds(dealInterval);
+            }
+
+            // After animation, render full sorted hand (still disabled until your turn)
+            players[0].SortHand();
+            handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
+        }
+
         void StartRound(int roundNumber)
         {
             waitingForNextRoundButton = false;
@@ -106,7 +158,13 @@ namespace Core
             DealCards(deck);
 
             // show your hand before bidding (disable click)
-            handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
+
+            if (animateDeal && deckPoint != null)
+                StartCoroutine(DealAllPlayersAnimated());
+            else
+                handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
+           
+
 
             if (trickUI) trickUI.Clear();
 
@@ -120,8 +178,19 @@ namespace Core
                 scoreboardUI.Refresh(players);
             }
 
+            if (animateDeal && deckPoint != null)
+                StartCoroutine(DealThenBid());
+            else
+                StartBidding();
+
+        }
+        
+        IEnumerator DealThenBid()
+        {
+            yield return StartCoroutine(DealAllPlayersAnimated());
             StartBidding();
         }
+
         
         void UpdateTurnIndicator(int playerIndex)
         {
@@ -323,7 +392,8 @@ namespace Core
             Vector3 startPos = target.position;
             startPos += (target.position - bottomSeat.position).normalized * 200f;
 
-            yield return StartCoroutine(AnimateThrow(chosen, startPos, target));
+            yield return StartCoroutine(AnimateThrow(chosen, startPos, target, false));
+
 
             PlayCard(currentPlayerIndex, chosen);
 
@@ -354,7 +424,8 @@ namespace Core
         
         IEnumerator HumanPlayRoutine(CardData card, Vector3 startPos, RectTransform target)
         {
-            yield return StartCoroutine(AnimateThrow(card, startPos, target));
+            // Human played card should be visible (face up)
+            yield return StartCoroutine(AnimateThrow(card, startPos, target, false));
 
             PlayCard(0, card);
 
@@ -364,6 +435,7 @@ namespace Core
 
             RunTurnLoop();
         }
+
 
 
 
@@ -603,14 +675,15 @@ namespace Core
             return bottomSeat;
         }
         
-        IEnumerator AnimateThrow(CardData card, Vector3 startWorldPos, RectTransform targetSeat)
+        IEnumerator AnimateThrow(CardData card, Vector3 startWorldPos, RectTransform targetSeat, bool faceDown)
         {
             FlyingCardUI fly = Instantiate(flyingCardPrefab, canvas.transform);
             RectTransform rt = fly.GetComponent<RectTransform>();
-            fly.Set(card);
+
+            if (faceDown) fly.SetBack();
+            else fly.SetFront(card);
 
             rt.position = startWorldPos;
-
             Vector3 endPos = targetSeat.position;
 
             float t = 0f;
@@ -623,7 +696,6 @@ namespace Core
             }
 
             rt.position = endPos;
-
             Destroy(fly.gameObject);
         }
 

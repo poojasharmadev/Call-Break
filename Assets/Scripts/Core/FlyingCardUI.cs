@@ -6,12 +6,18 @@ namespace Core
 {
     public class FlyingCardUI : MonoBehaviour
     {
-        public TMP_Text label;
-        public Image bg;
+        [Header("Front")]
+        public TMP_Text label;     // A♦
+        public Image frontBG;      // optional
 
-        public void Set(CardData card)
+        [Header("Back")]
+        public Image backImage;    // assign a card-back sprite image here
+
+        public void SetFront(CardData card)
         {
-            if (label) label.text = ShortName(card);
+            ShowBack(false);
+
+            if (label) label.text = GetShortCard(card);
 
             if (label)
             {
@@ -22,7 +28,20 @@ namespace Core
             }
         }
 
-        string ShortName(CardData c)
+        public void SetBack()
+        {
+            ShowBack(true);
+        }
+
+        void ShowBack(bool isBack)
+        {
+            if (backImage) backImage.enabled = isBack;
+
+            if (label) label.enabled = !isBack;
+            if (frontBG) frontBG.enabled = !isBack;
+        }
+
+        string GetShortCard(CardData c)
         {
             string rank =
                 c.rank == Rank.Ace ? "A" :
