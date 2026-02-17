@@ -1,12 +1,33 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Core
 {
     public class GameManager : MonoBehaviour
     {
         public List<PlayerData> players = new List<PlayerData>();
+        
+        [Header("Turn Indicator")]
+        public Image bottomSeatImage;
+        public Image leftSeatImage;
+        public Image topSeatImage;
+        public Image rightSeatImage;
+
+        public Color normalColor = Color.white;
+        public Color activeColor = new Color(1f, 1f, 0.4f); // soft yellow
+
+        
+        [Header("Animation")]
+        public Canvas canvas;                 // your main UI canvas
+        public FlyingCardUI flyingCardPrefab; // assign prefab here
+        public RectTransform bottomSeat;      // target for Player0
+        public RectTransform leftSeat;        // target for Player1
+        public RectTransform topSeat;         // target for Player2
+        public RectTransform rightSeat;       // target for Player3
+        public float throwDuration = 0.25f;
+
 
         [Header("UI")]
         public BidUI bidUI;
@@ -101,6 +122,27 @@ namespace Core
 
             StartBidding();
         }
+        
+        void UpdateTurnIndicator(int playerIndex)
+        {
+            bottomSeatImage.color = normalColor;
+            leftSeatImage.color = normalColor;
+            topSeatImage.color = normalColor;
+            rightSeatImage.color = normalColor;
+
+            if (playerIndex < 0) return;
+
+            switch (playerIndex)
+            {
+                case 0: bottomSeatImage.color = activeColor; break;
+                case 1: leftSeatImage.color = activeColor; break;
+                case 2: topSeatImage.color = activeColor; break;
+                case 3: rightSeatImage.color = activeColor; break;
+            }
+        }
+
+        
+
 
         void DealCards(Deck deck)
         {
@@ -230,6 +272,10 @@ namespace Core
         IEnumerator TurnRoutine()
         {
             isTurnRoutineRunning = true;
+            
+            UpdateTurnIndicator(currentPlayerIndex);
+         
+
 
             // Trick complete?
             if (trick.played.Count >= 4)
@@ -238,6 +284,7 @@ namespace Core
 
                 int winner = Rules.GetTrickWinner(trick.played, trick.leadSuit.Value);
                 players[winner].tricksWon++;
+                if (SFXManager.I) SFXManager.I.PlayTrickWin();
 
                 if (scoreboardUI) scoreboardUI.Refresh(players);
 
@@ -271,7 +318,15 @@ namespace Core
             PlayerData ai = players[currentPlayerIndex];
             CardData chosen = ChooseCard_Auto(ai, trick.leadSuit);
 
+            RectTransform target = GetSeatTarget(currentPlayerIndex);
+
+            Vector3 startPos = target.position;
+            startPos += (target.position - bottomSeat.position).normalized * 200f;
+
+            yield return StartCoroutine(AnimateThrow(chosen, startPos, target));
+
             PlayCard(currentPlayerIndex, chosen);
+
 
             currentPlayerIndex = (currentPlayerIndex + 1) % 4;
 
@@ -290,20 +345,27 @@ namespace Core
 
             waitingForHuman = false;
 
-            // Remove & show card in trick
+            RectTransform target = GetSeatTarget(0);
+            Vector3 startPos = target.position + Vector3.down * 200f;
+
+            StartCoroutine(HumanPlayRoutine(card, startPos, target));
+        }
+
+        
+        IEnumerator HumanPlayRoutine(CardData card, Vector3 startPos, RectTransform target)
+        {
+            yield return StartCoroutine(AnimateThrow(card, startPos, target));
+
             PlayCard(0, card);
 
-            // 🔥 Immediately refresh hand UI
-            handUI.Render(
-                players[0].hand,
-                OnHumanCardClicked,
-                (c) => false
-            );
+            handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
 
             currentPlayerIndex = (currentPlayerIndex + 1) % 4;
 
             RunTurnLoop();
         }
+
+
 
 
         void PlayCard(int playerIndex, CardData card)
@@ -315,6 +377,8 @@ namespace Core
             trick.played[playerIndex] = card;
 
             if (trickUI) trickUI.SetCardForPlayer(playerIndex, card);
+            if (SFXManager.I) SFXManager.I.PlayCardThrow();
+
         }
 
         // =================== SMART AI ===================
@@ -473,6 +537,8 @@ namespace Core
         void EndRoundAndShowPanel()
         {
             int roundIndex = currentRound - 1;
+            UpdateTurnIndicator(-1);
+
 
             for (int i = 0; i < players.Count; i++)
             {
@@ -492,6 +558,7 @@ namespace Core
             if (scoreboardUI) scoreboardUI.Refresh(players);
 
             waitingForNextRoundButton = true;
+            if (SFXManager.I) SFXManager.I.PlayRoundEnd();
 
             if (currentRound < maxRounds)
             {
@@ -499,6 +566,7 @@ namespace Core
             }
             else
             {
+                if (SFXManager.I) SFXManager.I.PlayFinal();
                 finalResultUI.Show(this, maxRounds, players);
             }
         }
@@ -522,5 +590,46 @@ namespace Core
             ResetAllTotals();
             StartRound(currentRound);
         }
+        
+        RectTransform GetSeatTarget(int playerIndex)
+        {
+            switch (playerIndex)
+            {
+                case 0: return bottomSeat;
+                case 1: return leftSeat;
+                case 2: return topSeat;
+                case 3: return rightSeat;
+            }
+            return bottomSeat;
+        }
+        
+        IEnumerator AnimateThrow(CardData card, Vector3 startWorldPos, RectTransform targetSeat)
+        {
+            FlyingCardUI fly = Instantiate(flyingCardPrefab, canvas.transform);
+            RectTransform rt = fly.GetComponent<RectTransform>();
+            fly.Set(card);
+
+            rt.position = startWorldPos;
+
+            Vector3 endPos = targetSeat.position;
+
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / throwDuration;
+                float smooth = Mathf.SmoothStep(0f, 1f, t);
+                rt.position = Vector3.Lerp(startWorldPos, endPos, smooth);
+                yield return null;
+            }
+
+            rt.position = endPos;
+
+            Destroy(fly.gameObject);
+        }
+
+        
+        
+
+
     }
 }
