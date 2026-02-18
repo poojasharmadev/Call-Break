@@ -1,3 +1,23 @@
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Android/Gradle/CMake temp
+.utmp/
+**/.cxx/
+**/cmake-build-*/
+**/.gradle/
+
+# Unity build outputs
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*BurstDebugInformation_DoNotShip*/
+**/il2cppOutput/
+
+# APK
+*.apk
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/

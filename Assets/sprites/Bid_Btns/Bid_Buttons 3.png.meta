@@ -1,10 +1,22 @@
 fileFormatVersion: 2
-guid: 99550b1c80e9a4e30b13286b4d82ceba
+guid: d2f04a1a302274c74bd12ecccb6bc430
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4780838939940065881
-    second: ba6b7297-c926-4c99-8114-ab5a6ef367b6_0
+      213: 5540405062396788297
+    second: Bid_Buttons 3_0
+  - first:
+      213: -1059233490353294005
+    second: Bid_Buttons 3_1
+  - first:
+      213: -5477701562722340214
+    second: Bid_Buttons 3_2
+  - first:
+      213: 6597820598038369327
+    second: Bid_Buttons 3_3
+  - first:
+      213: 1652099205884843860
+    second: Bid_Buttons 3_4
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,13 +138,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: ba6b7297-c926-4c99-8114-ab5a6ef367b6_0
+      name: Bid_Buttons 3_0
       rect:
         serializedVersion: 2
-        x: 0
+        x: 59
         y: 0
-        width: 1536
-        height: 1024
+        width: 731
+        height: 762
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +153,96 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7ad6488605c07adb0800000000000000
-      internalID: -4780838939940065881
+      spriteID: 94ebfe7cc0973ec40800000000000000
+      internalID: 5540405062396788297
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Bid_Buttons 3_1
+      rect:
+        serializedVersion: 2
+        x: 364
+        y: 699
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b457b49a0c8dc41f0800000000000000
+      internalID: -1059233490353294005
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Bid_Buttons 3_2
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 699
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a823558637b4bf3b0800000000000000
+      internalID: -5477701562722340214
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Bid_Buttons 3_3
+      rect:
+        serializedVersion: 2
+        x: 418
+        y: 700
+        width: 7
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2415dd80ea209b50800000000000000
+      internalID: 6597820598038369327
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Bid_Buttons 3_4
+      rect:
+        serializedVersion: 2
+        x: 432
+        y: 697
+        width: 11
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 457987c797f6de610800000000000000
+      internalID: 1652099205884843860
       vertices: []
       indices: 
       edges: []
@@ -161,7 +261,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      ba6b7297-c926-4c99-8114-ab5a6ef367b6_0: -4780838939940065881
+      Bid_Buttons 3_0: 5540405062396788297
+      Bid_Buttons 3_1: -1059233490353294005
+      Bid_Buttons 3_2: -5477701562722340214
+      Bid_Buttons 3_3: 6597820598038369327
+      Bid_Buttons 3_4: 1652099205884843860
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
