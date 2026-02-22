@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Core
 {
     [System.Serializable]
     public class PlayerData
     {
-        public int playerId;
+        public int index;
         public bool isHuman;
 
         public List<CardData> hand = new List<CardData>();
@@ -13,26 +14,31 @@ namespace Core
         public int bid;
         public int tricksWon;
 
-        public int totalScore;
-        public int lastRoundScore;
+        // ✅ Callbreak decimal scoring
+        public float totalScore;
+        public float lastRoundScore;
+        public float[] roundScores;
 
-        // ✅ store each round score (index 0 = Round1, 4 = Round5)
-        public int[] roundScores;
-
-        public PlayerData(int id, bool human, int maxRounds = 5)
+        public PlayerData(int index, bool isHuman, int maxRounds)
         {
-            playerId = id;
-            isHuman = human;
+            this.index = index;
+            this.isHuman = isHuman;
 
-            roundScores = new int[maxRounds];
+            bid = 0;
+            tricksWon = 0;
+
+            totalScore = 0f;
+            lastRoundScore = 0f;
+            roundScores = new float[maxRounds];
         }
 
         public void SortHand()
         {
+            // Keep your existing sort if you had one. Example:
             hand.Sort((a, b) =>
             {
-                int suitCompare = a.suit.CompareTo(b.suit);
-                if (suitCompare != 0) return suitCompare;
+                int suit = a.suit.CompareTo(b.suit);
+                if (suit != 0) return suit;
                 return a.rank.CompareTo(b.rank);
             });
         }

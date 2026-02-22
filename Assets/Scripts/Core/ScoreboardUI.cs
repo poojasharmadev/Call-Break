@@ -1,32 +1,47 @@
-using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using System.Collections.Generic;
 
 namespace Core
 {
     public class ScoreboardUI : MonoBehaviour
     {
-        public TMP_Text p0; // You (Bottom)
-        public TMP_Text p1; // Left
-        public TMP_Text p2; // Top
-        public TMP_Text p3; // Right
+        [Header("Round")]
+        public TMP_Text roundText;
 
-        public TMP_Text roundText; // optional: shows "Round 1/5"
+        [Header("Player Lines")]
+        public TMP_Text bottomLine; // You
+        public TMP_Text leftLine;   // P1
+        public TMP_Text topLine;    // P2
+        public TMP_Text rightLine;  // P3
 
-        public void SetRound(int roundIndex, int maxRounds)
+        int currentRound = 1;
+        int maxRounds = 5;
+
+        public void SetRound(int round, int max)
         {
-            if (roundText) roundText.text = $"Round {roundIndex}/{maxRounds}";
+            currentRound = round;
+            maxRounds = max;
+            if (roundText) roundText.text = $"Round {currentRound}/{maxRounds}";
         }
 
         public void Refresh(List<PlayerData> players)
         {
             if (players == null || players.Count < 4) return;
 
-            // Display: won/bid  |  Total
-            if (p0) p0.text = $"You: {players[0].tricksWon}/{players[0].bid} ";
-            if (p1) p1.text = $"P1: {players[1].tricksWon}/{players[1].bid} ";
-            if (p2) p2.text = $"P2: {players[2].tricksWon}/{players[2].bid}";
-            if (p3) p3.text = $"P3: {players[3].tricksWon}/{players[3].bid} ";
+            if (bottomLine) bottomLine.text = BuildLine("You", players[0]);
+            if (leftLine)   leftLine.text   = BuildLine("P1", players[1]);
+            if (topLine)    topLine.text    = BuildLine("P2", players[2]);
+            if (rightLine)  rightLine.text  = BuildLine("P3", players[3]);
+        }
+
+        string BuildLine(string name, PlayerData p)
+        {
+            // Only show progress like 1/3
+            // If bid is 0 during bidding, show "0/-" instead of "0/0"
+            string progress = (p.bid > 0) ? $"{p.tricksWon}/{p.bid}" : $"{p.tricksWon}/-";
+
+            return $"{name}: {progress}";
         }
     }
 }

@@ -9,75 +9,91 @@ namespace Core
         [Header("Root Panel")]
         public GameObject panel;
 
-        [Header("Title")]
-        public TMP_Text titleText;
+        [Header("Hide during results")]
+        public GameObject gameUIRoot;
 
-        [Header("Progress Table (multiline)")]
+        [Header("Texts")]
+        public TMP_Text titleText;
         public TMP_Text tableText;
+
+        [Header("Buttons")]
+        public GameObject nextRoundButton;
 
         GameManager gm;
 
-        public void Show(GameManager gameManager, int roundNumber, int maxRounds, List<PlayerData> players)
+        public void Show(GameManager gameManager, int currentRound, int maxRounds, List<PlayerData> players)
         {
             gm = gameManager;
 
+            if (gameUIRoot) gameUIRoot.SetActive(false);
             if (panel) panel.SetActive(true);
-            if (titleText) titleText.text = $"Round {roundNumber} Results";
+
+            if (titleText) titleText.text = $"Round {currentRound} Result";
 
             if (tableText)
             {
-                tableText.enableWordWrapping = false; // columns
-                tableText.text = BuildProgressTable(players, roundNumber);
-            }
-        }
-
-        string BuildProgressTable(List<PlayerData> players, int roundNumber)
-        {
-            // roundNumber = 1..5  (show only up to that round)
-            string s = "";
-            s += "Player |";
-
-            for (int r = 1; r <= roundNumber; r++)
-                s += $" R{r}";
-
-            s += " | Total\n";
-
-            s += "------------------------------\n";
-
-            s += LineFor(0, "You", players[0], roundNumber) + "\n";
-            s += LineFor(1, "P1 ", players[1], roundNumber) + "\n";
-            s += LineFor(2, "P2 ", players[2], roundNumber) + "\n";
-            s += LineFor(3, "P3 ", players[3], roundNumber) + "\n";
-
-            return s;
-        }
-
-        string LineFor(int idx, string name, PlayerData p, int roundNumber)
-        {
-            string s = $"{name.PadRight(4)} |";
-
-            for (int r = 0; r < roundNumber; r++)
-            {
-                s += " " + Format(p.roundScores[r]);
+                tableText.enableWordWrapping = false;
+                tableText.text = BuildTable(players, currentRound, maxRounds);
             }
 
-            s += $" | {p.totalScore}";
-            return s;
+            if (nextRoundButton) nextRoundButton.SetActive(currentRound < maxRounds);
         }
 
-        string Format(int v)
-        {
-            // fixed width like +7, -3,  0
-            if (v > 0) return $"+{v}".PadLeft(3);
-            if (v < 0) return $"{v}".PadLeft(3);
-            return " 0".PadLeft(3);
-        }
-
-        // Button OnClick
         public void OnNextRoundClicked()
         {
             if (panel) panel.SetActive(false);
-            gm?.StartNextRoundFromUI();
+            if (gameUIRoot) gameUIRoot.SetActive(true);
+
+            if (gm) gm.StartNextRoundFromUI();
+        }
+
+        string BuildTable(List<PlayerData> players, int currentRound, int maxRounds)
+        {
+            string s = "";
+
+            // Header
+            s += "Player |";
+            for (int r = 1; r <= maxRounds; r++)
+                s += $"  R{r}  ";
+            s += "| Total\n";
+
+            s += "-----------------------------------------------\n";
+
+            s += LineFor(0, players[0], currentRound, maxRounds) + "\n";
+            s += LineFor(1, players[1], currentRound, maxRounds) + "\n";
+            s += LineFor(2, players[2], currentRound, maxRounds) + "\n";
+            s += LineFor(3, players[3], currentRound, maxRounds) + "\n";
+
+            return s;
+        }
+
+        string LineFor(int index, PlayerData p, int currentRound, int maxRounds)
+        {
+            string name = (index == 0 ? "You" : $"P{index}");
+            name = name.PadRight(5); // fixed width name column
+
+            string line = $"{name} |";
+
+            for (int r = 0; r < maxRounds; r++)
+            {
+                if (r < currentRound)
+                    line += $"{FormatScore(p.roundScores[r])} ";
+                else
+                    line += "  --  ";
+            }
+
+            line += $"|{FormatScore(p.totalScore)}";
+            return line;
+        }
+
+        string FormatScore(float v)
+        {
+            // +0.0 / -4.0 / 4.1 etc (always 1 decimal)
+            string t = v.ToString("+0.0;-0.0;0.0");
+
+            // make every cell same width
+            // e.g. " +4.1" " -4.0" "  0.0"
+            return t.PadLeft(5);
         }
     }
 }

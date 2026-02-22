@@ -17,10 +17,11 @@ namespace Core
         public TMP_Text tableText;
         public TMP_Text rankingText;
 
-        // ✅ store GM so restart button works
+        [Header("Buttons")]
+        public GameObject restartButton; // assign
+
         GameManager gm;
 
-        // ✅ IMPORTANT: now Show takes GameManager
         public void Show(GameManager gameManager, int maxRounds, List<PlayerData> players)
         {
             gm = gameManager;
@@ -37,27 +38,29 @@ namespace Core
             }
 
             if (rankingText)
-            {
                 rankingText.text = BuildRanking(players);
-            }
+
+            if (restartButton) restartButton.SetActive(true);
         }
 
-        // ✅ Button OnClick will call this (no parameters)
         public void OnRestartClicked()
         {
-            gm?.RestartMatch();
+            if (panel) panel.SetActive(false);
+            if (gameUIRoot) gameUIRoot.SetActive(true);
+
+            if (gm) gm.RestartMatch();
         }
 
         string BuildTable(List<PlayerData> players, int maxRounds)
         {
             string s = "";
-            s += "Player | R1  R2  R3  R4  R5 | Total\n";
-            s += "-----------------------------------\n";
+            s += "Player | R1    R2    R3    R4    R5  | Total\n";
+            s += "-------------------------------------------\n";
 
-            s += LineFor("You", players[0]) + "\n";
-            s += LineFor("P1 ", players[1]) + "\n";
-            s += LineFor("P2 ", players[2]) + "\n";
-            s += LineFor("P3 ", players[3]) + "\n";
+            s += LineFor("You ", players[0]) + "\n";
+            s += LineFor("P1  ", players[1]) + "\n";
+            s += LineFor("P2  ", players[2]) + "\n";
+            s += LineFor("P3  ", players[3]) + "\n";
 
             return s;
         }
@@ -70,14 +73,14 @@ namespace Core
             string r4 = Format(p.roundScores[3]);
             string r5 = Format(p.roundScores[4]);
 
-            return $"{name.PadRight(3)}   | {r1} {r2} {r3} {r4} {r5} | {p.totalScore}";
+            return $"{name} | {r1} {r2} {r3} {r4} {r5} | {p.totalScore.ToString("0.0")}";
         }
 
-        string Format(int v)
+        string Format(float v)
         {
-            if (v > 0) return $"+{v}".PadLeft(3);
-            if (v < 0) return $"{v}".PadLeft(3);
-            return " 0".PadLeft(3);
+            string t = v.ToString("0.0");
+            if (t.Length < 5) t = t.PadLeft(5);
+            return t;
         }
 
         string BuildRanking(List<PlayerData> players)
@@ -88,10 +91,10 @@ namespace Core
             string Name(int i) => i == 0 ? "You" : $"P{i}";
 
             return
-                $"1st: {Name(order[0])} ({players[order[0]].totalScore})\n" +
-                $"2nd: {Name(order[1])} ({players[order[1]].totalScore})\n" +
-                $"3rd: {Name(order[2])} ({players[order[2]].totalScore})\n" +
-                $"4th: {Name(order[3])} ({players[order[3]].totalScore})";
+                $"1st: {Name(order[0])} ({players[order[0]].totalScore:0.0})\n" +
+                $"2nd: {Name(order[1])} ({players[order[1]].totalScore:0.0})\n" +
+                $"3rd: {Name(order[2])} ({players[order[2]].totalScore:0.0})\n" +
+                $"4th: {Name(order[3])} ({players[order[3]].totalScore:0.0})";
         }
     }
 }

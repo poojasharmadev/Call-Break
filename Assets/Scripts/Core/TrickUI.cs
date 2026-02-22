@@ -5,28 +5,41 @@ namespace Core
 {
     public class TrickUI : MonoBehaviour
     {
-        [Header("Seat Texts")]
-        public TMP_Text bottomText; // Player 0
-        public TMP_Text leftText;   // Player 1
-        public TMP_Text topText;    // Player 2
-        public TMP_Text rightText;  // Player 3
+        public RectTransform bottomSlot;
+        public RectTransform leftSlot;
+        public RectTransform topSlot;
+        public RectTransform rightSlot;
+
+        public TMP_Text bottomText;
+        public TMP_Text leftText;
+        public TMP_Text topText;
+        public TMP_Text rightText;
 
         public void Clear()
         {
-            if (bottomText) bottomText.text = "";
-            if (leftText) leftText.text = "";
-            if (topText) topText.text = "";
-            if (rightText) rightText.text = "";
+            bottomText.text = "";
+            leftText.text = "";
+            topText.text = "";
+            rightText.text = "";
+        }
+
+        public RectTransform GetSlot(int playerIndex)
+        {
+            switch (playerIndex)
+            {
+                case 0: return bottomSlot;
+                case 1: return leftSlot;
+                case 2: return topSlot;
+                case 3: return rightSlot;
+            }
+            return bottomSlot;
         }
 
         public void SetCardForPlayer(int playerIndex, CardData card)
         {
             TMP_Text target = GetSeatText(playerIndex);
-            if (target == null) return;
-
             target.text = GetShortCard(card);
 
-            // color: ♦♥ red, ♠♣ black
             if (card.suit == Suit.Hearts || card.suit == Suit.Diamonds)
                 target.color = Color.red;
             else
@@ -37,12 +50,12 @@ namespace Core
         {
             switch (playerIndex)
             {
-                case 0: return bottomText; // You
+                case 0: return bottomText;
                 case 1: return leftText;
                 case 2: return topText;
                 case 3: return rightText;
-                default: return null;
             }
+            return null;
         }
 
         string GetShortCard(CardData c)
