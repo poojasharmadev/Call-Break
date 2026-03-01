@@ -57,7 +57,7 @@ namespace Core
                 s += $"  R{r}  ";
             s += "| Total\n";
 
-            s += "-----------------------------------------------\n";
+            s += "----------------------------------------------------\n";
 
             s += LineFor(0, players[0], currentRound, maxRounds) + "\n";
             s += LineFor(1, players[1], currentRound, maxRounds) + "\n";

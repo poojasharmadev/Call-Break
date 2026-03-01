@@ -8,6 +8,20 @@ namespace Core
     public class GameManager : MonoBehaviour
     {
         public List<PlayerData> players = new List<PlayerData>();
+        
+        // ================= DEAL TARGETS =================
+        [Header("Deal Targets (hand positions)")]
+        public RectTransform dealBottom;
+        public RectTransform dealLeft;
+        public RectTransform dealTop;
+        public RectTransform dealRight;
+
+// ================= PLAY TARGETS =================
+        [Header("Play Targets (table positions)")]
+        public RectTransform playBottom;
+        public RectTransform playLeft;
+        public RectTransform playTop;
+        public RectTransform playRight;
 
         [Header("Turn Indicator")]
         public Image bottomSeatImage;
@@ -80,6 +94,30 @@ namespace Core
             players.Add(new PlayerData(1, false, maxRounds));  // Left
             players.Add(new PlayerData(2, false, maxRounds));  // Top
             players.Add(new PlayerData(3, false, maxRounds));  // Right
+        }
+        
+        RectTransform GetDealTarget(int playerIndex)
+        {
+            switch (playerIndex)
+            {
+                case 0: return dealBottom;
+                case 1: return dealLeft;
+                case 2: return dealTop;
+                case 3: return dealRight;
+            }
+            return dealBottom;
+        }
+
+        RectTransform GetPlayTarget(int playerIndex)
+        {
+            switch (playerIndex)
+            {
+                case 0: return playBottom;
+                case 1: return playLeft;
+                case 2: return playTop;
+                case 3: return playRight;
+            }
+            return playBottom;
         }
 
         void ResetAllTotals()
@@ -157,30 +195,30 @@ namespace Core
             yield return new WaitForSeconds(dealStartDelay);
 
             List<CardData> p0Temp = new List<CardData>();
-
             for (int r = 0; r < 13; r++)
             {
-                // P0 face up
-                yield return StartCoroutine(AnimateThrow(players[0].hand[r], deckPoint.position, bottomSeat, false));
-                p0Temp.Add(players[0].hand[r]);
-                handUI.Render(p0Temp, OnHumanCardClicked, (c) => false);
-                if (SFXManager.I) SFXManager.I.PlayCardThrow();
-                yield return new WaitForSeconds(dealInterval);
+                for (int i = 0; i < 4; i++)
+                {
+                    CardData card = players[i].hand[r];
 
-                // P1 face down
-                yield return StartCoroutine(AnimateThrow(players[1].hand[r], deckPoint.position, leftSeat, true));
-                if (SFXManager.I) SFXManager.I.PlayCardThrow();
-                yield return new WaitForSeconds(dealInterval);
+                    RectTransform dealTarget = GetDealTarget(i);
 
-                // ✅ P2 correct
-                yield return StartCoroutine(AnimateThrow(players[2].hand[r], deckPoint.position, topSeat, true));
-                if (SFXManager.I) SFXManager.I.PlayCardThrow();
-                yield return new WaitForSeconds(dealInterval);
+                    bool faceDown = (i != 0); // only you face-up
 
-                // ✅ P3 correct
-                yield return StartCoroutine(AnimateThrow(players[3].hand[r], deckPoint.position, rightSeat, true));
-                if (SFXManager.I) SFXManager.I.PlayCardThrow();
-                yield return new WaitForSeconds(dealInterval);
+                    yield return StartCoroutine(
+                        AnimateThrow(card, deckPoint.position, dealTarget, faceDown)
+                    );
+
+                    if (i == 0)
+                    {
+                        p0Temp.Add(card);
+                        handUI.Render(p0Temp, OnHumanCardClicked, (c) => false);
+                    }
+
+                    if (SFXManager.I) SFXManager.I.PlayCardThrow();
+
+                    yield return new WaitForSeconds(dealInterval);
+                }
             }
         }
 
@@ -349,12 +387,14 @@ namespace Core
             PlayerData ai = players[currentPlayerIndex];
             CardData chosen = ChooseCard_Auto(ai, trick.leadSuit);
 
-            RectTransform target = GetSeatTarget(currentPlayerIndex);
+            RectTransform playTarget = GetPlayTarget(currentPlayerIndex);
+            RectTransform dealTarget = GetDealTarget(currentPlayerIndex);
 
-            Vector3 startPos = target.position;
-            startPos += (target.position - bottomSeat.position).normalized * 200f;
+            Vector3 startPos = dealTarget.position;
 
-            yield return StartCoroutine(AnimateThrow(chosen, startPos, target, false));
+            yield return StartCoroutine(
+                AnimateThrow(chosen, startPos, playTarget, false)
+            );
 
             PlayCard(currentPlayerIndex, chosen);
 
@@ -375,10 +415,12 @@ namespace Core
 
             waitingForHuman = false;
 
-            RectTransform target = GetSeatTarget(0);
-            Vector3 startPos = target.position + Vector3.down * 200f;
+            RectTransform playTarget = GetPlayTarget(0);
+            RectTransform dealTarget = GetDealTarget(0);
 
-            StartCoroutine(HumanPlayRoutine(card, startPos, target));
+            Vector3 startPos = dealTarget.position;
+
+            StartCoroutine(HumanPlayRoutine(card, startPos, playTarget));
         }
 
         IEnumerator HumanPlayRoutine(CardData card, Vector3 startPos, RectTransform target)
@@ -402,7 +444,9 @@ namespace Core
             players[playerIndex].hand.Remove(card);
             trick.played[playerIndex] = card;
 
+            // ✅ Show card on table slot (play position), not hand/deal position
             if (trickUI) trickUI.SetCardForPlayer(playerIndex, card);
+
             if (SFXManager.I) SFXManager.I.PlayCardThrow();
         }
 
@@ -410,27 +454,31 @@ namespace Core
 
         IEnumerator AnimateTrickToWinner(int winnerIndex)
         {
-            RectTransform winnerSeat = GetSeatTarget(winnerIndex);
+            RectTransform winnerPile = GetDealTarget(winnerIndex); // ✅ collect to hand/pile position
 
+            // create 4 flying cards from PLAY positions (table slots)
             List<RectTransform> flyers = new List<RectTransform>();
             List<Vector3> starts = new List<Vector3>();
 
             foreach (var kv in trick.played)
             {
                 int playerIndex = kv.Key;
-                RectTransform trickSlot = trickUI.GetSlot(playerIndex);
+                CardData card = kv.Value;
+
+                // ✅ start position = play/table slot position (not deal)
+                RectTransform playSlot = GetPlayTarget(playerIndex);
 
                 FlyingCardUI fly = Instantiate(flyingCardPrefab, canvas.transform);
                 RectTransform rt = fly.GetComponent<RectTransform>();
 
-                fly.SetFront(kv.Value);
-                rt.position = trickSlot.position;
+                fly.SetFront(card);             // always face-up while collecting
+                rt.position = playSlot.position;
 
                 flyers.Add(rt);
-                starts.Add(trickSlot.position);
+                starts.Add(playSlot.position);
             }
 
-            float duration = 0.12f;
+            float duration = 0.12f; // fast
             float t = 0f;
 
             while (t < 1f)
@@ -439,18 +487,22 @@ namespace Core
                 float smooth = Mathf.SmoothStep(0f, 1f, t);
 
                 for (int i = 0; i < flyers.Count; i++)
+                {
                     if (flyers[i])
-                        flyers[i].position = Vector3.Lerp(starts[i], winnerSeat.position, smooth);
+                        flyers[i].position = Vector3.Lerp(starts[i], winnerPile.position, smooth);
+                }
 
                 yield return null;
             }
 
+            // cleanup flyers
             for (int i = 0; i < flyers.Count; i++)
                 if (flyers[i]) Destroy(flyers[i].gameObject);
 
+            // ✅ clear table
+            trick.played.Clear();
             if (trickUI) trickUI.Clear();
         }
-
         // =================== SMART AI ===================
 
         CardData ChooseCard_Auto(PlayerData ai, Suit? leadSuit)
