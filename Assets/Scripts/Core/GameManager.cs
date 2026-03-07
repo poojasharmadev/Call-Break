@@ -372,7 +372,7 @@ namespace Core
                 handUI.Render(
                     players[0].hand,
                     OnHumanCardClicked,
-                    (card) => Rules.IsLegalMove(players[0].hand, card, trick.leadSuit)
+                    (card) => Rules.IsLegalMove(players[0].hand, card, trick.leadSuit, trick.played)
                 );
 
                 isTurnRoutineRunning = false;
@@ -410,7 +410,7 @@ namespace Core
             if (waitingForNextRoundButton) return;
             if (!waitingForHuman) return;
 
-            if (!Rules.IsLegalMove(players[0].hand, card, trick.leadSuit))
+            if (!Rules.IsLegalMove(players[0].hand, card, trick.leadSuit, trick.played))
                 return;
 
             waitingForHuman = false;

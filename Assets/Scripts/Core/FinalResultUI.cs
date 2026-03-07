@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using UnityEngine;
 using TMPro;
 
@@ -49,6 +50,11 @@ namespace Core
             if (gameUIRoot) gameUIRoot.SetActive(true);
 
             if (gm) gm.RestartMatch();
+        }
+
+        public void OnHomeClicked()
+        {
+            SceneManager.LoadScene("MainMenu");
         }
 
         string BuildTable(List<PlayerData> players, int maxRounds)

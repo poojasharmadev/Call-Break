@@ -6,18 +6,60 @@ namespace Core
 {
     public class RoundResultUI : MonoBehaviour
     {
-        [Header("Root Panel")]
         public GameObject panel;
-
-        [Header("Hide during results")]
         public GameObject gameUIRoot;
-
-        [Header("Texts")]
         public TMP_Text titleText;
-        public TMP_Text tableText;
-
-        [Header("Buttons")]
         public GameObject nextRoundButton;
+
+        [Header("Header")]
+        public TMP_Text youHeader;
+        public TMP_Text p1Header;
+        public TMP_Text p2Header;
+        public TMP_Text p3Header;
+
+        [Header("Row Labels")]
+        public TMP_Text r1Label;
+        public TMP_Text r2Label;
+        public TMP_Text r3Label;
+        public TMP_Text r4Label;
+        public TMP_Text r5Label;
+        public TMP_Text totLabel;
+
+        [Header("R1")]
+        public TMP_Text r1You;
+        public TMP_Text r1P1;
+        public TMP_Text r1P2;
+        public TMP_Text r1P3;
+
+        [Header("R2")]
+        public TMP_Text r2You;
+        public TMP_Text r2P1;
+        public TMP_Text r2P2;
+        public TMP_Text r2P3;
+
+        [Header("R3")]
+        public TMP_Text r3You;
+        public TMP_Text r3P1;
+        public TMP_Text r3P2;
+        public TMP_Text r3P3;
+
+        [Header("R4")]
+        public TMP_Text r4You;
+        public TMP_Text r4P1;
+        public TMP_Text r4P2;
+        public TMP_Text r4P3;
+
+        [Header("R5")]
+        public TMP_Text r5You;
+        public TMP_Text r5P1;
+        public TMP_Text r5P2;
+        public TMP_Text r5P3;
+
+        [Header("Total")]
+        public TMP_Text totYou;
+        public TMP_Text totP1;
+        public TMP_Text totP2;
+        public TMP_Text totP3;
 
         GameManager gm;
 
@@ -27,73 +69,60 @@ namespace Core
 
             if (gameUIRoot) gameUIRoot.SetActive(false);
             if (panel) panel.SetActive(true);
-
             if (titleText) titleText.text = $"Round {currentRound} Result";
 
-            if (tableText)
-            {
-                tableText.enableWordWrapping = false;
-                tableText.text = BuildTable(players, currentRound, maxRounds);
-            }
+            if (youHeader) youHeader.text = "You";
+            if (p1Header) p1Header.text = "P1";
+            if (p2Header) p2Header.text = "P2";
+            if (p3Header) p3Header.text = "P3";
 
-            if (nextRoundButton) nextRoundButton.SetActive(currentRound < maxRounds);
+            if (r1Label) r1Label.text = "R1";
+            if (r2Label) r2Label.text = "R2";
+            if (r3Label) r3Label.text = "R3";
+            if (r4Label) r4Label.text = "R4";
+            if (r5Label) r5Label.text = "R5";
+            if (totLabel) totLabel.text = "Tot";
+
+            SetRow(currentRound, 1, players, r1You, r1P1, r1P2, r1P3);
+            SetRow(currentRound, 2, players, r2You, r2P1, r2P2, r2P3);
+            SetRow(currentRound, 3, players, r3You, r3P1, r3P2, r3P3);
+            SetRow(currentRound, 4, players, r4You, r4P1, r4P2, r4P3);
+            SetRow(currentRound, 5, players, r5You, r5P1, r5P2, r5P3);
+
+            if (totYou) totYou.text = players[0].totalScore.ToString("0.0");
+            if (totP1) totP1.text = players[1].totalScore.ToString("0.0");
+            if (totP2) totP2.text = players[2].totalScore.ToString("0.0");
+            if (totP3) totP3.text = players[3].totalScore.ToString("0.0");
+
+            if (nextRoundButton)
+                nextRoundButton.SetActive(currentRound < maxRounds);
+        }
+
+        void SetRow(int currentRound, int rowNumber, List<PlayerData> players,
+            TMP_Text a, TMP_Text b, TMP_Text c, TMP_Text d)
+        {
+            if (rowNumber <= currentRound)
+            {
+                int i = rowNumber - 1;
+                if (a) a.text = players[0].roundScores[i].ToString("0.0");
+                if (b) b.text = players[1].roundScores[i].ToString("0.0");
+                if (c) c.text = players[2].roundScores[i].ToString("0.0");
+                if (d) d.text = players[3].roundScores[i].ToString("0.0");
+            }
+            else
+            {
+                if (a) a.text = "-";
+                if (b) b.text = "-";
+                if (c) c.text = "-";
+                if (d) d.text = "-";
+            }
         }
 
         public void OnNextRoundClicked()
         {
             if (panel) panel.SetActive(false);
             if (gameUIRoot) gameUIRoot.SetActive(true);
-
             if (gm) gm.StartNextRoundFromUI();
-        }
-
-        string BuildTable(List<PlayerData> players, int currentRound, int maxRounds)
-        {
-            string s = "";
-
-            // Header
-            s += "Player |";
-            for (int r = 1; r <= maxRounds; r++)
-                s += $"  R{r}  ";
-            s += "| Total\n";
-
-            s += "----------------------------------------------------\n";
-
-            s += LineFor(0, players[0], currentRound, maxRounds) + "\n";
-            s += LineFor(1, players[1], currentRound, maxRounds) + "\n";
-            s += LineFor(2, players[2], currentRound, maxRounds) + "\n";
-            s += LineFor(3, players[3], currentRound, maxRounds) + "\n";
-
-            return s;
-        }
-
-        string LineFor(int index, PlayerData p, int currentRound, int maxRounds)
-        {
-            string name = (index == 0 ? "You" : $"P{index}");
-            name = name.PadRight(5); // fixed width name column
-
-            string line = $"{name} |";
-
-            for (int r = 0; r < maxRounds; r++)
-            {
-                if (r < currentRound)
-                    line += $"{FormatScore(p.roundScores[r])} ";
-                else
-                    line += "  --  ";
-            }
-
-            line += $"|{FormatScore(p.totalScore)}";
-            return line;
-        }
-
-        string FormatScore(float v)
-        {
-            // +0.0 / -4.0 / 4.1 etc (always 1 decimal)
-            string t = v.ToString("+0.0;-0.0;0.0");
-
-            // make every cell same width
-            // e.g. " +4.1" " -4.0" "  0.0"
-            return t.PadLeft(5);
         }
     }
 }
