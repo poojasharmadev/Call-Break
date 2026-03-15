@@ -1,62 +1,57 @@
+using Database;
 using UnityEngine;
-using TMPro;
 using UnityEngine.UI;
 
 namespace Core
 {
     public class FlyingCardUI : MonoBehaviour
     {
-        [Header("Front")]
-        public TMP_Text label;     // A♦
-        public Image frontBG;      // optional
-
-        [Header("Back")]
-        public Image backImage;    // assign a card-back sprite image here
+        [Header("UI")]
+        [SerializeField] private Image frontImage;
+        [SerializeField] private Image backImage;
 
         public void SetFront(CardData card)
         {
-            ShowBack(false);
-
-            if (label) label.text = GetShortCard(card);
-
-            if (label)
+            if (CardDatabaseHolder.Instance == null)
             {
-                if (card.suit == Suit.Hearts || card.suit == Suit.Diamonds)
-                    label.color = Color.red;
-                else
-                    label.color = Color.black;
+                Debug.LogError("CardDatabaseHolder instance not found in scene.", this);
+                return;
             }
+
+            Sprite sprite = CardDatabaseHolder.Instance.GetFront(card);
+
+            if (sprite == null)
+                return;
+
+            if (frontImage != null)
+                frontImage.sprite = sprite;
+
+            ShowBack(false);
         }
 
         public void SetBack()
         {
+            if (CardDatabaseHolder.Instance == null)
+            {
+                Debug.LogError("CardDatabaseHolder instance not found in scene.", this);
+                return;
+            }
+
+            Sprite sprite = CardDatabaseHolder.Instance.GetBack();
+
+            if (backImage != null)
+                backImage.sprite = sprite;
+
             ShowBack(true);
         }
 
-        void ShowBack(bool isBack)
+        private void ShowBack(bool showBack)
         {
-            if (backImage) backImage.enabled = isBack;
+            if (backImage != null)
+                backImage.enabled = showBack;
 
-            if (label) label.enabled = !isBack;
-            if (frontBG) frontBG.enabled = !isBack;
-        }
-
-        string GetShortCard(CardData c)
-        {
-            string rank =
-                c.rank == Rank.Ace ? "A" :
-                c.rank == Rank.King ? "K" :
-                c.rank == Rank.Queen ? "Q" :
-                c.rank == Rank.Jack ? "J" :
-                ((int)c.rank).ToString();
-
-            string suit =
-                c.suit == Suit.Spades ? "♠" :
-                c.suit == Suit.Hearts ? "♥" :
-                c.suit == Suit.Diamonds ? "♦" :
-                "♣";
-
-            return rank + suit;
+            if (frontImage != null)
+                frontImage.enabled = !showBack;
         }
     }
 }

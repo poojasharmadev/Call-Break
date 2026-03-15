@@ -5,6 +5,14 @@
 # OS
 .DS_Store
 
+Assets/Firebase/Plugins/x86_64/*.bundle
+Assets/Firebase/Plugins/x86_64/*.so
+Assets/Firebase/Plugins/x86_64/
+
+.Firebase
+.NaughtyAttributes
+.GoogleMobileAds
+.ExternalDependencyManager
 # Android/Gradle/CMake temp
 .utmp/
 **/.cxx/

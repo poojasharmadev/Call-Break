@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "284160292114",
+    "project_id": "callbreak-2cb9a",
+    "storage_bucket": "callbreak-2cb9a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284160292114:android:34fee8905cfe0c695aefcb",
+        "android_client_info": {
+          "package_name": "com.gamekunda.games.callbreak"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4iUU6VUyrmxPGQ4P_o_2wiMtm4zpDAoQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

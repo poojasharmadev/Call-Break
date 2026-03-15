@@ -26,5 +26,7 @@ namespace Core
         {
             return $"{rank} of {suit}";
         }
+        
+        public string Key => $"{suit}_{rank}";
     }
 }

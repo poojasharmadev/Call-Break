@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 namespace Core
 {
@@ -16,10 +16,10 @@ namespace Core
         [Header("Texts")]
         public TMP_Text titleText;
         public TMP_Text tableText;
-        public TMP_Text rankingText;
 
         [Header("Buttons")]
-        public GameObject restartButton; // assign
+        public GameObject restartButton;
+        public GameObject homeButton;
 
         GameManager gm;
 
@@ -30,18 +30,95 @@ namespace Core
             if (gameUIRoot) gameUIRoot.SetActive(false);
             if (panel) panel.SetActive(true);
 
-            if (titleText) titleText.text = "Final Results";
+            if (titleText)
+                titleText.text = "Final Result";
 
             if (tableText)
             {
                 tableText.enableWordWrapping = false;
-                tableText.text = BuildTable(players, maxRounds);
+                tableText.text = BuildFinalTable(players);
             }
 
-            if (rankingText)
-                rankingText.text = BuildRanking(players);
-
             if (restartButton) restartButton.SetActive(true);
+            if (homeButton) homeButton.SetActive(true);
+        }
+
+        string BuildFinalTable(List<PlayerData> players)
+        {
+            string s = "";
+
+            // Header
+            s += string.Format("{0,-8}{1,-12}{2,-12}{3,-12}{4,-12}\n",
+                "", "You", "P1", "P2", "P3");
+
+            s += "-------------------------------------------------\n";
+
+            // Round rows
+            for (int r = 0; r < 5; r++)
+            {
+                s += string.Format("{0,-8}{1,-12}{2,-12}{3,-12}{4,-12}\n",
+                    "R" + (r + 1),
+                    Format(players[0], r),
+                    Format(players[1], r),
+                    Format(players[2], r),
+                    Format(players[3], r));
+            }
+            
+
+            s += "--------------------------------------------------\n";
+
+            // Total
+            s += string.Format("{0,-8}{1,-12}{2,-12}{3,-12}{4,-12}\n",
+                "Total",
+                players[0].totalScore.ToString("0.0"),
+                players[1].totalScore.ToString("0.0"),
+                players[2].totalScore.ToString("0.0"),
+                players[3].totalScore.ToString("0.0"));
+
+            // Rank
+            string[] ranks = GetRanks(players);
+
+            s += string.Format("{0,-8}{1,-12}{2,-12}{3,-12}{4,-12}",
+                "Rank",
+                ranks[0],
+                ranks[1],
+                ranks[2],
+                ranks[3]);
+
+            return s;
+        }
+
+        string Format(PlayerData p, int round)
+        {
+            float score = p.roundScores[round];
+
+            // if failed bid
+            if (score < 0)
+            {
+                return CircleBid(p.bid);
+            }
+
+            return score.ToString("0.0");
+        }
+
+        string[] GetRanks(List<PlayerData> players)
+        {
+            string[] result = new string[4];
+
+            List<int> order = new List<int> { 0, 1, 2, 3 };
+            order.Sort((a, b) => players[b].totalScore.CompareTo(players[a].totalScore));
+
+            result[order[0]] = "1st";
+            result[order[1]] = "2nd";
+            result[order[2]] = "3rd";
+            result[order[3]] = "4th";
+
+            return result;
+        }
+        
+        string CircleBid(int bid)
+        {
+            return "(" + bid + ")";
         }
 
         public void OnRestartClicked()
@@ -55,52 +132,6 @@ namespace Core
         public void OnHomeClicked()
         {
             SceneManager.LoadScene("MainMenu");
-        }
-
-        string BuildTable(List<PlayerData> players, int maxRounds)
-        {
-            string s = "";
-            s += "Player | R1    R2    R3    R4    R5  | Total\n";
-            s += "-------------------------------------------\n";
-
-            s += LineFor("You ", players[0]) + "\n";
-            s += LineFor("P1  ", players[1]) + "\n";
-            s += LineFor("P2  ", players[2]) + "\n";
-            s += LineFor("P3  ", players[3]) + "\n";
-
-            return s;
-        }
-
-        string LineFor(string name, PlayerData p)
-        {
-            string r1 = Format(p.roundScores[0]);
-            string r2 = Format(p.roundScores[1]);
-            string r3 = Format(p.roundScores[2]);
-            string r4 = Format(p.roundScores[3]);
-            string r5 = Format(p.roundScores[4]);
-
-            return $"{name} | {r1} {r2} {r3} {r4} {r5} | {p.totalScore.ToString("0.0")}";
-        }
-
-        string Format(float v)
-        {
-            string t = v.ToString("0.0");
-            if (t.Length < 5) t = t.PadLeft(5);
-            return t;
-        }
-
-        string BuildRanking(List<PlayerData> players)
-        {
-            List<int> order = new List<int> { 0, 1, 2, 3 };
-            order.Sort((a, b) => players[b].totalScore.CompareTo(players[a].totalScore));
-
-            string Name(int i) => i == 0 ? "You" : $"P{i}";
-
-            return
-                $"1st: {Name(order[0])} ({players[order[0]].totalScore:0.0})\n" +
-                $"2nd: {Name(order[1])} ({players[order[1]].totalScore:0.0})\n" +
-                $"3rd: {Name(order[2])} ({players[order[2]].totalScore:0.0})\n" +
-                $"4th: {Name(order[3])} ({players[order[3]].totalScore:0.0})";
         }
     }
 }

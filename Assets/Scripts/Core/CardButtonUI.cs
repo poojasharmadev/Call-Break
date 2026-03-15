@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Database;
 
 namespace Core
 {
@@ -8,6 +9,7 @@ namespace Core
     {
         [SerializeField] private TMP_Text label;
         [SerializeField] private Button button;
+        [SerializeField] private Image cardImage;
 
         CardData card;
         System.Action<CardData> onClick;
@@ -20,9 +22,14 @@ namespace Core
             if (button == null)
                 button = GetComponent<Button>();
 
+            if (cardImage == null)
+                cardImage = GetComponent<Image>();
+
+            bool spriteAssigned = TryAssignSprite(card);
+
             if (label != null)
             {
-                label.text = GetShortCard(card);
+                label.text = spriteAssigned ? string.Empty : GetShortCard(card);
 
                 // ✅ Make Hearts & Diamonds RED
                 if (card.suit == Suit.Hearts || card.suit == Suit.Diamonds)
@@ -43,6 +50,20 @@ namespace Core
         public void Click()
         {
             onClick?.Invoke(card);
+        }
+
+        bool TryAssignSprite(CardData c)
+        {
+            if (cardImage == null || CardDatabaseHolder.Instance == null)
+                return false;
+
+            Sprite front = CardDatabaseHolder.Instance.GetFront(c);
+            if (front == null)
+                return false;
+
+            cardImage.sprite = front;
+            cardImage.color = Color.white;
+            return true;
         }
 
         string GetShortCard(CardData c)

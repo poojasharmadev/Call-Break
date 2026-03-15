@@ -140,11 +140,7 @@ namespace Core
         {
             waitingForNextRoundButton = false;
 
-            deck = new Deck();
-            deck.Build52();
-            deck.Shuffle();
-
-            DealCards(deck);
+            DealUntilValid();
 
             if (trickUI) trickUI.Clear();
 
@@ -169,6 +165,29 @@ namespace Core
                 StartBidding();
             }
         }
+        
+        bool AllPlayersHaveAtLeastOneSpade()
+        {
+            for (int i = 0; i < players.Count; i++)
+            {
+                bool hasSpade = false;
+
+                for (int j = 0; j < players[i].hand.Count; j++)
+                {
+                    if (players[i].hand[j].suit == Suit.Spades)
+                    {
+                        hasSpade = true;
+                        break;
+                    }
+                }
+
+                if (!hasSpade)
+                    return false;
+            }
+
+            return true;
+        }
+        
 
         IEnumerator DealThenBid()
         {
@@ -402,6 +421,37 @@ namespace Core
 
             isTurnRoutineRunning = false;
             RunTurnLoop();
+        }
+        
+        bool HasAtLeastOneSpade(List<CardData> hand)
+        {
+            for (int i = 0; i < hand.Count; i++)
+            {
+                if (hand[i].suit == Suit.Spades)
+                    return true;
+            }
+
+            return false;
+        }
+        
+        void DealUntilValid()
+        {
+            int safety = 100;
+
+            do
+            {
+                deck = new Deck();
+                deck.Build52();
+                deck.Shuffle();
+
+                DealCards(deck);
+
+                safety--;
+            }
+            while (!HasAtLeastOneSpade(players[0].hand) && safety > 0);
+
+            if (safety <= 0)
+                Debug.LogWarning("Redeal safety limit reached.");
         }
 
         void OnHumanCardClicked(CardData card)

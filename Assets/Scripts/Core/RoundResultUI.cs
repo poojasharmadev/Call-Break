@@ -17,14 +17,6 @@ namespace Core
         public TMP_Text p2Header;
         public TMP_Text p3Header;
 
-        [Header("Row Labels")]
-        public TMP_Text r1Label;
-        public TMP_Text r2Label;
-        public TMP_Text r3Label;
-        public TMP_Text r4Label;
-        public TMP_Text r5Label;
-        public TMP_Text totLabel;
-
         [Header("R1")]
         public TMP_Text r1You;
         public TMP_Text r1P1;
@@ -76,13 +68,6 @@ namespace Core
             if (p2Header) p2Header.text = "P2";
             if (p3Header) p3Header.text = "P3";
 
-            if (r1Label) r1Label.text = "R1";
-            if (r2Label) r2Label.text = "R2";
-            if (r3Label) r3Label.text = "R3";
-            if (r4Label) r4Label.text = "R4";
-            if (r5Label) r5Label.text = "R5";
-            if (totLabel) totLabel.text = "Tot";
-
             SetRow(currentRound, 1, players, r1You, r1P1, r1P2, r1P3);
             SetRow(currentRound, 2, players, r2You, r2P1, r2P2, r2P3);
             SetRow(currentRound, 3, players, r3You, r3P1, r3P2, r3P3);
@@ -104,10 +89,11 @@ namespace Core
             if (rowNumber <= currentRound)
             {
                 int i = rowNumber - 1;
-                if (a) a.text = players[0].roundScores[i].ToString("0.0");
-                if (b) b.text = players[1].roundScores[i].ToString("0.0");
-                if (c) c.text = players[2].roundScores[i].ToString("0.0");
-                if (d) d.text = players[3].roundScores[i].ToString("0.0");
+
+                if (a) a.text = FormatRoundValue(players[0], i);
+                if (b) b.text = FormatRoundValue(players[1], i);
+                if (c) c.text = FormatRoundValue(players[2], i);
+                if (d) d.text = FormatRoundValue(players[3], i);
             }
             else
             {
@@ -116,6 +102,22 @@ namespace Core
                 if (c) c.text = "-";
                 if (d) d.text = "-";
             }
+        }
+
+        string FormatRoundValue(PlayerData player, int roundIndex)
+        {
+            float score = player.roundScores[roundIndex];
+
+            // failed bid -> show circled bid instead of negative score
+            if (score < 0)
+                return CircleBid(player.bid);
+
+            return score.ToString("0.0");
+        }
+
+        string CircleBid(int bid)
+        {
+            return "(" + bid + ")";
         }
 
         public void OnNextRoundClicked()
