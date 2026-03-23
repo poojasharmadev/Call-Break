@@ -123,15 +123,29 @@ namespace Core
         void HighlightActivePlayer(int playerIndex)
         {
             ResetTurnIndicatorColors();
+            UpdateTurnStatusText(playerIndex);
+            UpdateScoreboardTurnHighlight(playerIndex);
 
             if (playerIndex < 0) return;
 
             switch (playerIndex)
             {
-                case 0: if (bottomSeatImage) bottomSeatImage.color = activeColor; break;
-                case 1: if (leftSeatImage) leftSeatImage.color = activeColor; break;
-                case 2: if (topSeatImage) topSeatImage.color = activeColor; break;
-                case 3: if (rightSeatImage) rightSeatImage.color = activeColor; break;
+                case 0:
+                    if (bottomSeatImage) bottomSeatImage.color = activeColor;
+                    SetSeatIndicatorScale(bottomSeatImage, activeSeatScale);
+                    break;
+                case 1:
+                    if (leftSeatImage) leftSeatImage.color = activeColor;
+                    SetSeatIndicatorScale(leftSeatImage, activeSeatScale);
+                    break;
+                case 2:
+                    if (topSeatImage) topSeatImage.color = activeColor;
+                    SetSeatIndicatorScale(topSeatImage, activeSeatScale);
+                    break;
+                case 3:
+                    if (rightSeatImage) rightSeatImage.color = activeColor;
+                    SetSeatIndicatorScale(rightSeatImage, activeSeatScale);
+                    break;
             }
         }
 

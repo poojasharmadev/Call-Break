@@ -10,9 +10,13 @@ namespace Core
         [SerializeField] private TMP_Text label;
         [SerializeField] private Button button;
         [SerializeField] private Image cardImage;
+        [SerializeField] private Color playableBorderColor = new Color(0.2f, 1f, 0.2f, 1f);
+        [SerializeField] private float playableBorderThickness = 4f;
+        [SerializeField] private float playableBorderPadding = 8f;
 
         CardData card;
         System.Action<CardData> onClick;
+        SimpleCardHighlightUI playableHighlight;
 
         public void Setup(CardData card, System.Action<CardData> onClick)
         {
@@ -24,6 +28,8 @@ namespace Core
 
             if (cardImage == null)
                 cardImage = GetComponent<Image>();
+
+            EnsurePlayableHighlight();
 
             bool spriteAssigned = TryAssignSprite(card);
 
@@ -45,6 +51,7 @@ namespace Core
                 button = GetComponent<Button>();
 
             button.interactable = value;
+            UpdatePlayableHighlight(value);
         }
 
         public void Click()
@@ -64,6 +71,32 @@ namespace Core
             cardImage.sprite = front;
             cardImage.color = Color.white;
             return true;
+        }
+
+        void EnsurePlayableHighlight()
+        {
+            if (cardImage == null)
+                return;
+
+            playableHighlight = cardImage.GetComponent<SimpleCardHighlightUI>();
+
+            if (playableHighlight == null)
+                playableHighlight = cardImage.gameObject.AddComponent<SimpleCardHighlightUI>();
+
+            playableHighlight.Configure(
+                playableBorderColor,
+                playableBorderThickness,
+                playableBorderPadding);
+            playableHighlight.SetVisible(false);
+        }
+
+        void UpdatePlayableHighlight(bool isPlayable)
+        {
+            if (playableHighlight == null)
+                EnsurePlayableHighlight();
+
+            if (playableHighlight != null)
+                playableHighlight.SetVisible(isPlayable);
         }
 
         string GetShortCard(CardData c)

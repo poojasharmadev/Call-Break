@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Core
 {
@@ -16,6 +17,9 @@ namespace Core
         [Header("Result UI")]
         public RoundResultUI roundResultUI;
         public FinalResultUI finalResultUI;
+
+        [Header("Scene Navigation")]
+        public string homeSceneName = "MainMenu";
 
         public void RenderPlayerHand(
             List<CardData> hand,
@@ -44,6 +48,12 @@ namespace Core
             scoreboardUI.Refresh(players);
         }
 
+        public void UpdateScoreboardTurnHighlight(int playerIndex)
+        {
+            if (!scoreboardUI) return;
+            scoreboardUI.SetActivePlayerHighlight(playerIndex);
+        }
+
         public void ShowBidPanel()
         {
             if (bidUI) bidUI.Open();
@@ -69,6 +79,11 @@ namespace Core
             if (roundResultUI && roundResultUI.panel) roundResultUI.panel.SetActive(false);
             if (finalResultUI && finalResultUI.panel) finalResultUI.panel.SetActive(false);
             if (gameUIRoot) gameUIRoot.SetActive(true);
+        }
+
+        public void OnBackButtonClicked()
+        {
+            SceneManager.LoadScene(homeSceneName);
         }
     }
 }

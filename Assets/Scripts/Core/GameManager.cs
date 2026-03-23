@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace Core
 {
@@ -26,9 +27,12 @@ namespace Core
         public Image leftSeatImage;
         public Image topSeatImage;
         public Image rightSeatImage;
+        public TMP_Text turnStatusText;
 
         public Color normalColor = Color.white;
-        public Color activeColor = new Color(1f, 1f, 0.4f);
+        public Color activeColor = new Color(1f, 0.93f, 0.35f);
+        public float inactiveSeatScale = 1f;
+        public float activeSeatScale = 1.12f;
 
         [Header("Deal Animation Pro")]
         public RectTransform deckPoint;

@@ -15,8 +15,15 @@ namespace Core
         public TMP_Text topLine;    // P2
         public TMP_Text rightLine;  // P3
 
+        [Header("Turn Highlight")]
+        public Color normalLineColor = Color.white;
+        public Color activeLineColor = new Color(1f, 0.93f, 0.35f);
+        public float normalLineScale = 1f;
+        public float activeLineScale = 1.12f;
+
         int currentRound = 1;
         int maxRounds = 5;
+        int activePlayerIndex = -1;
 
         public void SetRound(int round, int max)
         {
@@ -33,15 +40,37 @@ namespace Core
             if (leftLine)   leftLine.text   = BuildLine("P1", players[1]);
             if (topLine)    topLine.text    = BuildLine("P2", players[2]);
             if (rightLine)  rightLine.text  = BuildLine("P3", players[3]);
+
+            ApplyTurnHighlight();
+        }
+
+        public void SetActivePlayerHighlight(int playerIndex)
+        {
+            activePlayerIndex = playerIndex;
+            ApplyTurnHighlight();
         }
 
         string BuildLine(string name, PlayerData p)
         {
-            // Only show progress like 1/3
-            // If bid is 0 during bidding, show "0/-" instead of "0/0"
             string progress = (p.bid > 0) ? $"{p.tricksWon}/{p.bid}" : $"{p.tricksWon}/-";
-
             return $"{name}: {progress}";
+        }
+
+        void ApplyTurnHighlight()
+        {
+            ApplyLineStyle(bottomLine, activePlayerIndex == 0);
+            ApplyLineStyle(leftLine, activePlayerIndex == 1);
+            ApplyLineStyle(topLine, activePlayerIndex == 2);
+            ApplyLineStyle(rightLine, activePlayerIndex == 3);
+        }
+
+        void ApplyLineStyle(TMP_Text line, bool isActive)
+        {
+            if (!line) return;
+
+            line.color = isActive ? activeLineColor : normalLineColor;
+            line.fontStyle = isActive ? FontStyles.Bold : FontStyles.Normal;
+            line.rectTransform.localScale = Vector3.one * (isActive ? activeLineScale : normalLineScale);
         }
     }
 }

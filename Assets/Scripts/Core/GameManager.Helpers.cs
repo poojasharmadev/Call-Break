@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Core
 {
@@ -32,6 +33,7 @@ namespace Core
             if (uiManager)
             {
                 uiManager.UpdateScoreboardDisplay(currentRound, maxRounds, players);
+                uiManager.UpdateScoreboardTurnHighlight(GetDisplayedTurnPlayerIndex());
                 return;
             }
 
@@ -39,7 +41,32 @@ namespace Core
             {
                 scoreboardUI.SetRound(currentRound, maxRounds);
                 scoreboardUI.Refresh(players);
+                scoreboardUI.SetActivePlayerHighlight(GetDisplayedTurnPlayerIndex());
             }
+        }
+
+        void UpdateScoreboardTurnHighlight(int playerIndex)
+        {
+            if (uiManager)
+            {
+                uiManager.UpdateScoreboardTurnHighlight(playerIndex);
+                return;
+            }
+
+            if (scoreboardUI)
+            {
+                scoreboardUI.SetActivePlayerHighlight(playerIndex);
+            }
+        }
+
+        int GetDisplayedTurnPlayerIndex()
+        {
+            if (!biddingDone || waitingForNextRoundButton)
+            {
+                return -1;
+            }
+
+            return currentPlayerIndex;
         }
 
         void ClearPlayedCardsOnTable()
@@ -149,6 +176,41 @@ namespace Core
             if (leftSeatImage) leftSeatImage.color = normalColor;
             if (topSeatImage) topSeatImage.color = normalColor;
             if (rightSeatImage) rightSeatImage.color = normalColor;
+
+            SetSeatIndicatorScale(bottomSeatImage, inactiveSeatScale);
+            SetSeatIndicatorScale(leftSeatImage, inactiveSeatScale);
+            SetSeatIndicatorScale(topSeatImage, inactiveSeatScale);
+            SetSeatIndicatorScale(rightSeatImage, inactiveSeatScale);
+        }
+
+        void SetSeatIndicatorScale(Image seatImage, float scale)
+        {
+            if (!seatImage) return;
+            seatImage.rectTransform.localScale = Vector3.one * scale;
+        }
+
+        void UpdateTurnStatusText(int playerIndex)
+        {
+            if (!turnStatusText) return;
+
+            switch (playerIndex)
+            {
+                case 0:
+                    turnStatusText.text = "Your Turn";
+                    break;
+                case 1:
+                    turnStatusText.text = "P1 Turn";
+                    break;
+                case 2:
+                    turnStatusText.text = "P2 Turn";
+                    break;
+                case 3:
+                    turnStatusText.text = "P3 Turn";
+                    break;
+                default:
+                    turnStatusText.text = string.Empty;
+                    break;
+            }
         }
 
         void PlayCardThrowSound()
