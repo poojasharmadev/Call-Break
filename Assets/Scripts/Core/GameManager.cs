@@ -5,18 +5,16 @@ using UnityEngine.UI;
 
 namespace Core
 {
-    public class GameManager : MonoBehaviour
+    public partial class GameManager : MonoBehaviour
     {
         public List<PlayerData> players = new List<PlayerData>();
-        
-        // ================= DEAL TARGETS =================
+
         [Header("Deal Targets (hand positions)")]
         public RectTransform dealBottom;
         public RectTransform dealLeft;
         public RectTransform dealTop;
         public RectTransform dealRight;
 
-// ================= PLAY TARGETS =================
         [Header("Play Targets (table positions)")]
         public RectTransform playBottom;
         public RectTransform playLeft;
@@ -30,7 +28,7 @@ namespace Core
         public Image rightSeatImage;
 
         public Color normalColor = Color.white;
-        public Color activeColor = new Color(1f, 1f, 0.4f); // soft yellow
+        public Color activeColor = new Color(1f, 1f, 0.4f);
 
         [Header("Deal Animation Pro")]
         public RectTransform deckPoint;
@@ -48,13 +46,11 @@ namespace Core
         public float throwDuration = 0.25f;
 
         [Header("UI")]
+        public GameUIManager uiManager;
         public BidUI bidUI;
         public HandUI handUI;
         public TrickUI trickUI;
         public ScoreboardUI scoreboardUI;
-
-        bool waitingForHumanBid = false;
-        int humanBidValue = 0;
 
         [Header("Result Panels")]
         public RoundResultUI roundResultUI;
@@ -72,30 +68,31 @@ namespace Core
 
         int leaderIndex = 0;
         int currentPlayerIndex = 0;
+        int currentRound = 1;
+        int humanBidValue = 0;
 
         bool waitingForHuman = false;
+        bool waitingForHumanBid = false;
         bool biddingDone = false;
         bool isTurnRoutineRunning = false;
-
-        int currentRound = 1;
         bool waitingForNextRoundButton = false;
 
         void Start()
         {
-            CreatePlayers();
-            ResetAllTotals();
-            StartRound(currentRound);
+            InitializePlayers();
+            ResetMatchScores();
+            BeginRound(currentRound);
         }
 
-        void CreatePlayers()
+        void InitializePlayers()
         {
             players.Clear();
-            players.Add(new PlayerData(0, true, maxRounds));   // You (Bottom)
-            players.Add(new PlayerData(1, false, maxRounds));  // Left
-            players.Add(new PlayerData(2, false, maxRounds));  // Top
-            players.Add(new PlayerData(3, false, maxRounds));  // Right
+            players.Add(new PlayerData(0, true, maxRounds));
+            players.Add(new PlayerData(1, false, maxRounds));
+            players.Add(new PlayerData(2, false, maxRounds));
+            players.Add(new PlayerData(3, false, maxRounds));
         }
-        
+
         RectTransform GetDealTarget(int playerIndex)
         {
             switch (playerIndex)
@@ -105,6 +102,7 @@ namespace Core
                 case 2: return dealTop;
                 case 3: return dealRight;
             }
+
             return dealBottom;
         }
 
@@ -117,95 +115,58 @@ namespace Core
                 case 2: return playTop;
                 case 3: return playRight;
             }
+
             return playBottom;
         }
 
-        void ResetAllTotals()
+        void ResetMatchScores()
         {
-            foreach (var p in players)
+            foreach (var player in players)
             {
-                p.totalScore = 0f;
-                p.lastRoundScore = 0f;
-                p.tricksWon = 0;
-                p.bid = 0;
+                ResetPlayerMatchScore(player);
 
-                for (int i = 0; i < p.roundScores.Length; i++)
-                    p.roundScores[i] = 0f;
+                for (int i = 0; i < player.roundScores.Length; i++)
+                {
+                    player.roundScores[i] = 0f;
+                }
             }
         }
 
-        // =================== ROUND START ===================
-
-        void StartRound(int roundNumber)
+        void BeginRound(int roundNumber)
         {
             waitingForNextRoundButton = false;
-
-            DealUntilValid();
-
-            if (trickUI) trickUI.Clear();
+            DealHandsUntilHumanHasSpade();
+            ClearPlayedCardsOnTable();
 
             biddingDone = false;
-
-            // ✅ round starter rotates
-            leaderIndex = (currentRound - 1) % 4;
+            leaderIndex = GetStartingPlayerIndexForRound();
             currentPlayerIndex = leaderIndex;
 
-            if (scoreboardUI)
-            {
-                scoreboardUI.SetRound(currentRound, maxRounds);
-                scoreboardUI.Refresh(players);
-            }
+            UpdateScoreboardDisplay();
 
-            // ✅ IMPORTANT: run only ONE deal flow
             if (animateDeal && deckPoint != null)
-                StartCoroutine(DealThenBid());
-            else
             {
-                handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
-                StartBidding();
-            }
-        }
-        
-        bool AllPlayersHaveAtLeastOneSpade()
-        {
-            for (int i = 0; i < players.Count; i++)
-            {
-                bool hasSpade = false;
-
-                for (int j = 0; j < players[i].hand.Count; j++)
-                {
-                    if (players[i].hand[j].suit == Suit.Spades)
-                    {
-                        hasSpade = true;
-                        break;
-                    }
-                }
-
-                if (!hasSpade)
-                    return false;
+                StartCoroutine(DealCardsThenStartBidding());
+                return;
             }
 
-            return true;
+            UpdateHumanHandDisplay(players[0].hand, false);
+            BeginBiddingPhase();
         }
-        
 
-        IEnumerator DealThenBid()
+        IEnumerator DealCardsThenStartBidding()
         {
-            // show empty hand while dealing
-            handUI.Render(new List<CardData>(), OnHumanCardClicked, (c) => false);
+            UpdateHumanHandDisplay(new List<CardData>(), false);
+            yield return StartCoroutine(AnimateInitialDeal());
 
-            yield return StartCoroutine(DealAllPlayersAnimated());
-
-            // sort after dealing (optional)
             players[0].SortHand();
-            handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
-
-            StartBidding();
+            UpdateHumanHandDisplay(players[0].hand, false);
+            BeginBiddingPhase();
         }
 
-        IEnumerator DealAllPlayersAnimated()
+        IEnumerator AnimateInitialDeal()
         {
-            if (!deckPoint || !canvas || !flyingCardPrefab || !bottomSeat || !leftSeat || !topSeat || !rightSeat)
+            if (!HasAllDealAnimationReferences())
             {
                 Debug.LogError("Deal animation missing references! Check GameManager inspector.");
                 yield break;
@@ -213,228 +174,57 @@ namespace Core
 
             yield return new WaitForSeconds(dealStartDelay);
 
-            List<CardData> p0Temp = new List<CardData>();
-            for (int r = 0; r < 13; r++)
+            List<CardData> visibleHumanCards = new List<CardData>();
+            for (int round = 0; round < 13; round++)
             {
-                for (int i = 0; i < 4; i++)
+                for (int playerIndex = 0; playerIndex < 4; playerIndex++)
                 {
-                    CardData card = players[i].hand[r];
+                    CardData card = players[playerIndex].hand[round];
+                    yield return StartCoroutine(AnimateCardDealToPlayer(playerIndex, card));
 
-                    RectTransform dealTarget = GetDealTarget(i);
-
-                    bool faceDown = (i != 0); // only you face-up
-
-                    yield return StartCoroutine(
-                        AnimateThrow(card, deckPoint.position, dealTarget, faceDown)
-                    );
-
-                    if (i == 0)
+                    if (playerIndex == 0)
                     {
-                        p0Temp.Add(card);
-                        handUI.Render(p0Temp, OnHumanCardClicked, (c) => false);
+                        visibleHumanCards.Add(card);
+                        UpdateHumanHandDisplay(visibleHumanCards, false);
                     }
 
-                    if (SFXManager.I) SFXManager.I.PlayCardThrow();
-
+                    PlayCardThrowSound();
                     yield return new WaitForSeconds(dealInterval);
                 }
             }
         }
 
-        void DealCards(Deck deck)
+        void DealHandsFromDeck(Deck sourceDeck)
         {
-            foreach (var p in players)
+            foreach (var player in players)
             {
-                p.hand.Clear();
-                p.bid = 0;
-                p.tricksWon = 0;
-                p.lastRoundScore = 0f;
+                player.hand.Clear();
+                ResetPlayerRoundStateForNewRound(player);
             }
 
-            for (int r = 0; r < 13; r++)
-                for (int i = 0; i < players.Count; i++)
-                    players[i].hand.Add(deck.Draw());
-
-            // ✅ Don't sort here if you want realistic deal order
-            // Sorting is done after dealing (for P0) in DealThenBid
-        }
-
-        // =================== BIDDING ===================
-
-        void StartBidding()
-        {
-            StartCoroutine(BidRoutine());
-        }
-
-        IEnumerator BidRoutine()
-        {
-            biddingDone = false;
-
-            for (int i = 0; i < players.Count; i++)
-                players[i].bid = 0;
-
-            if (scoreboardUI) scoreboardUI.Refresh(players);
-
-            // bidding order: leader+1 ... leader (leader last)
-            int bidder = (leaderIndex + 1) % 4;
-
-            for (int step = 0; step < 4; step++)
+            for (int round = 0; round < 13; round++)
             {
-                if (bidder == 0)
+                for (int playerIndex = 0; playerIndex < players.Count; playerIndex++)
                 {
-                    waitingForHumanBid = true;
-                    bidUI.Open();
-
-                    while (waitingForHumanBid)
-                        yield return null;
-
-                    players[0].bid = humanBidValue;
-                    bidUI.gameObject.SetActive(false);
-
-                    if (scoreboardUI) scoreboardUI.Refresh(players);
+                    players[playerIndex].hand.Add(sourceDeck.Draw());
                 }
-                else
-                {
-                    players[bidder].bid = GetAIBid(players[bidder]);
-                    if (scoreboardUI) scoreboardUI.Refresh(players);
-                    yield return new WaitForSeconds(0.25f);
-                }
-
-                bidder = (bidder + 1) % 4;
             }
-
-            biddingDone = true;
-
-            StartNewTrick();
         }
 
-        public void OnHumanBidConfirmed(int bid)
-        {
-            humanBidValue = bid;
-            waitingForHumanBid = false;
-        }
-
-        int GetAIBid(PlayerData ai)
-        {
-            int spades = 0;
-            int high = 0;
-
-            foreach (var c in ai.hand)
-            {
-                if (c.suit == Suit.Spades) spades++;
-                if (c.rank == Rank.Ace || c.rank == Rank.King || c.rank == Rank.Queen || c.rank == Rank.Jack)
-                    high++;
-            }
-
-            int bid = 1 + (spades / 3) + (high / 4);
-            return Mathf.Clamp(bid, 1, 8);
-        }
-
-        // =================== TRICKS ===================
-
-        void StartNewTrick()
-        {
-            if (players[0].hand.Count == 0)
-            {
-                EndRoundAndShowPanel();
-                return;
-            }
-
-            trick.Reset(leaderIndex);
-            currentPlayerIndex = leaderIndex;
-
-            if (trickUI) trickUI.Clear();
-
-            RunTurnLoop();
-        }
-
-        void RunTurnLoop()
-        {
-            if (!biddingDone) return;
-            if (waitingForNextRoundButton) return;
-            if (isTurnRoutineRunning) return;
-
-            StartCoroutine(TurnRoutine());
-        }
-
-        IEnumerator TurnRoutine()
-        {
-            isTurnRoutineRunning = true;
-            UpdateTurnIndicator(currentPlayerIndex);
-
-            // Trick complete?
-            if (trick.played.Count >= 4)
-            {
-                yield return new WaitForSeconds(winnerDelay);
-
-                int winner = Rules.GetTrickWinner(trick.played, trick.leadSuit.Value);
-                players[winner].tricksWon++;
-
-                yield return StartCoroutine(AnimateTrickToWinner(winner));
-
-                if (SFXManager.I) SFXManager.I.PlayTrickWin();
-
-                if (scoreboardUI) scoreboardUI.Refresh(players);
-
-                leaderIndex = winner;
-
-                isTurnRoutineRunning = false;
-                StartNewTrick();
-                yield break;
-            }
-
-            // Human
-            if (currentPlayerIndex == 0)
-            {
-                waitingForHuman = true;
-
-                handUI.Render(
-                    players[0].hand,
-                    OnHumanCardClicked,
-                    (card) => Rules.IsLegalMove(players[0].hand, card, trick.leadSuit, trick.played)
-                );
-
-                isTurnRoutineRunning = false;
-                yield break;
-            }
-
-            // AI
-            waitingForHuman = false;
-
-            yield return new WaitForSeconds(aiPlayDelay);
-
-            PlayerData ai = players[currentPlayerIndex];
-            CardData chosen = ChooseCard_Auto(ai, trick.leadSuit);
-
-            RectTransform playTarget = GetPlayTarget(currentPlayerIndex);
-            RectTransform dealTarget = GetDealTarget(currentPlayerIndex);
-
-            Vector3 startPos = dealTarget.position;
-
-            yield return StartCoroutine(
-                AnimateThrow(chosen, startPos, playTarget, false)
-            );
-
-            PlayCard(currentPlayerIndex, chosen);
-
-            currentPlayerIndex = (currentPlayerIndex + 1) % 4;
-
-            isTurnRoutineRunning = false;
-            RunTurnLoop();
-        }
-        
-        bool HasAtLeastOneSpade(List<CardData> hand)
+        bool HandHasSpade(List<CardData> hand)
         {
             for (int i = 0; i < hand.Count; i++)
             {
                 if (hand[i].suit == Suit.Spades)
+                {
                     return true;
+                }
             }
 
             return false;
         }
-        
-        void DealUntilValid()
+
+        void DealHandsUntilHumanHasSpade()
         {
             int safety = 100;
 
@@ -443,357 +233,62 @@ namespace Core
                 deck = new Deck();
                 deck.Build52();
                 deck.Shuffle();
-
-                DealCards(deck);
-
+                DealHandsFromDeck(deck);
                 safety--;
             }
-            while (!HasAtLeastOneSpade(players[0].hand) && safety > 0);
+            while (!HandHasSpade(players[0].hand) && safety > 0);
 
             if (safety <= 0)
+            {
                 Debug.LogWarning("Redeal safety limit reached.");
-        }
-
-        void OnHumanCardClicked(CardData card)
-        {
-            if (!biddingDone) return;
-            if (waitingForNextRoundButton) return;
-            if (!waitingForHuman) return;
-
-            if (!Rules.IsLegalMove(players[0].hand, card, trick.leadSuit, trick.played))
-                return;
-
-            waitingForHuman = false;
-
-            RectTransform playTarget = GetPlayTarget(0);
-            RectTransform dealTarget = GetDealTarget(0);
-
-            Vector3 startPos = dealTarget.position;
-
-            StartCoroutine(HumanPlayRoutine(card, startPos, playTarget));
-        }
-
-        IEnumerator HumanPlayRoutine(CardData card, Vector3 startPos, RectTransform target)
-        {
-            yield return StartCoroutine(AnimateThrow(card, startPos, target, false));
-
-            PlayCard(0, card);
-
-            handUI.Render(players[0].hand, OnHumanCardClicked, (c) => false);
-
-            currentPlayerIndex = (currentPlayerIndex + 1) % 4;
-
-            RunTurnLoop();
-        }
-
-        void PlayCard(int playerIndex, CardData card)
-        {
-            if (trick.leadSuit == null)
-                trick.leadSuit = card.suit;
-
-            players[playerIndex].hand.Remove(card);
-            trick.played[playerIndex] = card;
-
-            // ✅ Show card on table slot (play position), not hand/deal position
-            if (trickUI) trickUI.SetCardForPlayer(playerIndex, card);
-
-            if (SFXManager.I) SFXManager.I.PlayCardThrow();
-        }
-
-        // =================== TRICK COLLECT ANIM ===================
-
-        IEnumerator AnimateTrickToWinner(int winnerIndex)
-        {
-            RectTransform winnerPile = GetDealTarget(winnerIndex); // ✅ collect to hand/pile position
-
-            // create 4 flying cards from PLAY positions (table slots)
-            List<RectTransform> flyers = new List<RectTransform>();
-            List<Vector3> starts = new List<Vector3>();
-
-            foreach (var kv in trick.played)
-            {
-                int playerIndex = kv.Key;
-                CardData card = kv.Value;
-
-                // ✅ start position = play/table slot position (not deal)
-                RectTransform playSlot = GetPlayTarget(playerIndex);
-
-                FlyingCardUI fly = Instantiate(flyingCardPrefab, canvas.transform);
-                RectTransform rt = fly.GetComponent<RectTransform>();
-
-                fly.SetFront(card);             // always face-up while collecting
-                rt.position = playSlot.position;
-
-                flyers.Add(rt);
-                starts.Add(playSlot.position);
             }
-
-            float duration = 0.12f; // fast
-            float t = 0f;
-
-            while (t < 1f)
-            {
-                t += Time.deltaTime / duration;
-                float smooth = Mathf.SmoothStep(0f, 1f, t);
-
-                for (int i = 0; i < flyers.Count; i++)
-                {
-                    if (flyers[i])
-                        flyers[i].position = Vector3.Lerp(starts[i], winnerPile.position, smooth);
-                }
-
-                yield return null;
-            }
-
-            // cleanup flyers
-            for (int i = 0; i < flyers.Count; i++)
-                if (flyers[i]) Destroy(flyers[i].gameObject);
-
-            // ✅ clear table
-            trick.played.Clear();
-            if (trickUI) trickUI.Clear();
-        }
-        // =================== SMART AI ===================
-
-        CardData ChooseCard_Auto(PlayerData ai, Suit? leadSuit)
-        {
-            if (leadSuit == null)
-                return ChooseLeadCard(ai);
-
-            Suit lead = leadSuit.Value;
-            CardData currentBest = GetCurrentWinningCard(lead);
-
-            List<CardData> followSuit = ai.hand.FindAll(c => c.suit == lead);
-            if (followSuit.Count > 0)
-            {
-                followSuit.Sort(CardCompare);
-
-                CardData winCard = FindLowestWinningFollow(followSuit, currentBest, lead);
-                if (winCard != null) return winCard;
-
-                return followSuit[0];
-            }
-
-            List<CardData> spades = ai.hand.FindAll(c => c.suit == Suit.Spades);
-            if (spades.Count > 0)
-            {
-                spades.Sort(CardCompare);
-                CardData trumpWin = FindLowestTrumpWin(spades, currentBest);
-                if (trumpWin != null) return trumpWin;
-            }
-
-            return ChooseLowestDiscard(ai);
         }
 
-        CardData ChooseLeadCard(PlayerData ai)
+        void EndRoundAndShowResults()
         {
-            int clubs = ai.hand.FindAll(c => c.suit == Suit.Clubs).Count;
-            int diamonds = ai.hand.FindAll(c => c.suit == Suit.Diamonds).Count;
-            int hearts = ai.hand.FindAll(c => c.suit == Suit.Hearts).Count;
-
-            Suit bestSuit = Suit.Clubs;
-            int bestCount = clubs;
-
-            if (diamonds > bestCount) { bestSuit = Suit.Diamonds; bestCount = diamonds; }
-            if (hearts > bestCount) { bestSuit = Suit.Hearts; bestCount = hearts; }
-
-            List<CardData> candidates = ai.hand.FindAll(c => c.suit == bestSuit);
-            candidates.Sort(CardCompare);
-
-            for (int i = candidates.Count - 1; i >= 0; i--)
-            {
-                if (candidates[i].rank == Rank.Ace ||
-                    candidates[i].rank == Rank.King ||
-                    candidates[i].rank == Rank.Queen)
-                    return candidates[i];
-            }
-
-            return ChooseLowestDiscard(ai);
-        }
-
-        CardData ChooseLowestDiscard(PlayerData ai)
-        {
-            List<CardData> nonSpades = ai.hand.FindAll(c => c.suit != Suit.Spades);
-            if (nonSpades.Count > 0)
-            {
-                nonSpades.Sort(CardCompare);
-                return nonSpades[0];
-            }
-
-            List<CardData> spades = ai.hand.FindAll(c => c.suit == Suit.Spades);
-            spades.Sort(CardCompare);
-            return spades[0];
-        }
-
-        CardData GetCurrentWinningCard(Suit leadSuit)
-        {
-            CardData best = null;
-
-            foreach (var kv in trick.played)
-            {
-                CardData c = kv.Value;
-                if (best == null) { best = c; continue; }
-                if (Beats(c, best, leadSuit)) best = c;
-            }
-
-            return best;
-        }
-
-        CardData FindLowestWinningFollow(List<CardData> followSuit, CardData currentBest, Suit leadSuit)
-        {
-            for (int i = 0; i < followSuit.Count; i++)
-                if (Beats(followSuit[i], currentBest, leadSuit))
-                    return followSuit[i];
-
-            return null;
-        }
-
-        CardData FindLowestTrumpWin(List<CardData> spades, CardData currentBest)
-        {
-            if (currentBest == null) return spades[0];
-
-            if (currentBest.suit != Suit.Spades)
-                return spades[0];
-
-            for (int i = 0; i < spades.Count; i++)
-                if (spades[i].rank > currentBest.rank)
-                    return spades[i];
-
-            return null;
-        }
-
-        bool Beats(CardData a, CardData b, Suit leadSuit)
-        {
-            if (a.suit == Suit.Spades && b.suit != Suit.Spades) return true;
-            if (a.suit != Suit.Spades && b.suit == Suit.Spades) return false;
-
-            if (a.suit == b.suit) return a.rank > b.rank;
-            if (a.suit == leadSuit && b.suit != leadSuit) return true;
-
-            return false;
-        }
-
-        int CardCompare(CardData a, CardData b)
-        {
-            return a.rank.CompareTo(b.rank);
-        }
-
-        // =================== ROUND END ===================
-
-        void EndRoundAndShowPanel()
-        {
-            UpdateTurnIndicator(-1);
+            HighlightActivePlayer(-1);
 
             int roundIndex = currentRound - 1;
-
             for (int i = 0; i < players.Count; i++)
             {
-                var p = players[i];
+                PlayerData player = players[i];
+                float roundScore = CalculateRoundScoreForPlayer(player);
 
-                float roundScore;
-
-                if (p.tricksWon >= p.bid)
-                {
-                    int extra = p.tricksWon - p.bid;
-                    roundScore = p.bid + (extra * 0.1f); // ✅ 0.1 per extra trick
-                }
-                else
-                {
-                    roundScore = -p.bid; // ✅ -4.0 formatting in UI
-                }
-
-                p.lastRoundScore = roundScore;
-                p.totalScore += roundScore;
-                p.roundScores[roundIndex] = roundScore;
+                player.lastRoundScore = roundScore;
+                player.totalScore += roundScore;
+                player.roundScores[roundIndex] = roundScore;
             }
 
-            if (scoreboardUI) scoreboardUI.Refresh(players);
-
+            UpdateScoreboardDisplay();
             waitingForNextRoundButton = true;
-            if (SFXManager.I) SFXManager.I.PlayRoundEnd();
+            PlayRoundEndSound();
 
             if (currentRound < maxRounds)
             {
-                roundResultUI.Show(this, currentRound, maxRounds, players);
+                if (uiManager) uiManager.ShowRoundResults(this, currentRound, maxRounds, players);
+                else if (roundResultUI) roundResultUI.Show(this, currentRound, maxRounds, players);
+                return;
             }
-            else
-            {
-                if (SFXManager.I) SFXManager.I.PlayFinal();
-                finalResultUI.Show(this, maxRounds, players);
-            }
+
+            PlayFinalResultSound();
+            if (uiManager) uiManager.ShowFinalResults(this, maxRounds, players);
+            else if (finalResultUI) finalResultUI.Show(this, maxRounds, players);
         }
 
         public void StartNextRoundFromUI()
         {
             if (currentRound >= maxRounds) return;
+
             currentRound++;
-            StartRound(currentRound);
+            BeginRound(currentRound);
         }
 
         public void RestartMatch()
         {
-            if (finalResultUI && finalResultUI.panel) finalResultUI.panel.SetActive(false);
-            if (roundResultUI && roundResultUI.panel) roundResultUI.panel.SetActive(false);
-
-            if (finalResultUI && finalResultUI.gameUIRoot) finalResultUI.gameUIRoot.SetActive(true);
-
+            HideResultsAndShowGameUI();
             currentRound = 1;
-            ResetAllTotals();
-            StartRound(currentRound);
-        }
-
-        RectTransform GetSeatTarget(int playerIndex)
-        {
-            switch (playerIndex)
-            {
-                case 0: return bottomSeat;
-                case 1: return leftSeat;
-                case 2: return topSeat;
-                case 3: return rightSeat;
-            }
-            return bottomSeat;
-        }
-
-        void UpdateTurnIndicator(int playerIndex)
-        {
-            if (bottomSeatImage) bottomSeatImage.color = normalColor;
-            if (leftSeatImage) leftSeatImage.color = normalColor;
-            if (topSeatImage) topSeatImage.color = normalColor;
-            if (rightSeatImage) rightSeatImage.color = normalColor;
-
-            if (playerIndex < 0) return;
-
-            switch (playerIndex)
-            {
-                case 0: if (bottomSeatImage) bottomSeatImage.color = activeColor; break;
-                case 1: if (leftSeatImage) leftSeatImage.color = activeColor; break;
-                case 2: if (topSeatImage) topSeatImage.color = activeColor; break;
-                case 3: if (rightSeatImage) rightSeatImage.color = activeColor; break;
-            }
-        }
-
-        IEnumerator AnimateThrow(CardData card, Vector3 startWorldPos, RectTransform targetSeat, bool faceDown)
-        {
-            FlyingCardUI fly = Instantiate(flyingCardPrefab, canvas.transform);
-            RectTransform rt = fly.GetComponent<RectTransform>();
-
-            if (faceDown) fly.SetBack();
-            else fly.SetFront(card);
-
-            rt.position = startWorldPos;
-            Vector3 endPos = targetSeat.position;
-
-            float t = 0f;
-            while (t < 1f)
-            {
-                t += Time.deltaTime / throwDuration;
-                float smooth = Mathf.SmoothStep(0f, 1f, t);
-                rt.position = Vector3.Lerp(startWorldPos, endPos, smooth);
-                yield return null;
-            }
-
-            rt.position = endPos;
-            Destroy(fly.gameObject);
+            ResetMatchScores();
+            BeginRound(currentRound);
         }
     }
 }
